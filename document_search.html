@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Aerospace Document Intelligence System</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #0d1117; color: #e6edf3; }
+  .header { background: #161b22; padding: 20px 30px; border-bottom: 1px solid #30363d; }
+  .header h1 { font-size: 20px; color: #58a6ff; }
+  .header p { font-size: 12px; color: #8b949e; margin-top: 4px; }
+  .main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  .search-box { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 20px; margin-bottom: 24px; }
+  .search-box h3 { font-size: 13px; color: #8b949e; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  .search-row { display: flex; gap: 10px; }
+  .search-input { flex: 1; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #e6edf3; font-size: 14px; outline: none; }
+  .search-input:focus { border-color: #58a6ff; }
+  .search-btn { background: #1f6feb; border: none; border-radius: 6px; padding: 10px 20px; color: white; cursor: pointer; font-size: 14px; }
+  .filters { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .filter-btn { padding: 4px 12px; border-radius: 20px; border: 1px solid #30363d; background: #0d1117; color: #8b949e; cursor: pointer; font-size: 12px; }
+  .filter-btn.active { background: #1f3a5f; border-color: #58a6ff; color: #58a6ff; }
+  .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 24px; }
+  .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; text-align: center; }
+  .stat-card .num { font-size: 24px; font-weight: bold; }
+  .stat-card .lbl { font-size: 11px; color: #8b949e; margin-top: 4px; text-transform: uppercase; }
+  .results-header { font-size: 13px; color: #8b949e; margin-bottom: 12px; }
+  .doc-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+  .doc-card:hover { border-color: #58a6ff; }
+  .doc-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .doc-title { font-size: 14px; font-weight: bold; color: #e6edf3; flex: 1; }
+  .doc-meta { display: flex; gap: 8px; align-items: center; margin-left: 12px; }
+  .category-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+  .cat-aerodynamics { background: #0d2040; color: #58a6ff; }
+  .cat-guidance { background: #0d2e1a; color: #3fb950; }
+  .cat-propulsion { background: #3d2e0a; color: #d29922; }
+  .cat-sensors { background: #3d1a1a; color: #f85149; }
+  .cat-structures { background: #2d1a3d; color: #bc8cff; }
+  .doc-text { font-size: 12px; color: #8b949e; margin-top: 8px; line-height: 1.5; }
+  .doc-keywords { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .keyword { font-size: 11px; background: #21262d; color: #8b949e; padding: 2px 8px; border-radius: 4px; }
+  .similar-docs { margin-top: 10px; padding-top: 10px; border-top: 1px solid #30363d; }
+  .similar-label { font-size: 11px; color: #8b949e; margin-bottom: 6px; }
+  .similar-item { font-size: 12px; color: #58a6ff; cursor: pointer; padding: 3px 0; }
+  .similar-item:hover { text-decoration: underline; }
+  .quick-queries { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .quick-btn { padding: 4px 10px; background: #21262d; border: 1px solid #30363d; border-radius: 4px; color: #8b949e; cursor: pointer; font-size: 11px; }
+  .quick-btn:hover { color: #58a6ff; border-color: #58a6ff; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Aerospace Technical Document Intelligence System</h1>
+  <p>NLP Document Classifier &middot; TF-IDF Search Engine &middot; Cosine Similarity &middot; 25 Technical Reports</p>
+</div>
+<div class="main">
+  <div class="stats-row" id="stats-row"></div>
+  <div class="search-box">
+    <h3>Search Documents</h3>
+    <div class="search-row">
+      <input class="search-input" id="search-input" type="text" placeholder="Search by topic, keyword, or technical term...">
+      <button class="search-btn" id="search-btn">Search</button>
+    </div>
+    <div class="quick-queries">
+      <span style="font-size:11px;color:#8b949e;margin-right:4px">Quick:</span>
+      <button class="quick-btn" data-query="missile guidance navigation">missile guidance</button>
+      <button class="quick-btn" data-query="hypersonic thermal heating">hypersonic heating</button>
+      <button class="quick-btn" data-query="radar sensor detection">radar sensor</button>
+      <button class="quick-btn" data-query="propellant thrust combustion">propulsion</button>
+      <button class="quick-btn" data-query="composite structural fatigue">structures</button>
+    </div>
+    <div class="filters" id="filters"></div>
+  </div>
+  <div class="results-header" id="results-header">Loading...</div>
+  <div id="results"></div>
+</div>
+<script>
+var allDocs = [{"id": 0, "title": "Advanced Turbofan Engine Performance Analysis", "category": "propulsion", "text": "This report presents a comprehensive analysis of turbofan engine performance characteristics including thrust, fuel consumption, and thermal efficiency. The study examines compressor and turbine stage interactions, combustion chamber dynamics, and exhaust nozzle configurations. Performance metrics w...", "keywords": ["report", "present", "comprehensive", "analysis", "turbofan", "engine", "performance", "characteristic"], "similar": [1, 2, 3]}, {"id": 1, "title": "Rocket Propulsion Systems for Deep Space Missions", "category": "propulsion", "text": "Investigation of advanced rocket propulsion technologies for deep space exploration missions. Analysis includes liquid oxygen and liquid hydrogen propellant combinations, specific impulse optimization, and combustion stability. Thrust chamber design parameters and nozzle expansion ratios were evalua...", "keywords": ["investigation", "advanced", "rocket", "propulsion", "technology", "deep", "space", "exploration"], "similar": [4, 3, 0]}, {"id": 2, "title": "Hypersonic Scramjet Engine Development", "category": "propulsion", "text": "Development and testing of scramjet engine technology for hypersonic flight vehicles. Supersonic combustion dynamics, fuel injection strategies, and flameholding mechanisms are analyzed. Inlet design optimization for Mach 6 through Mach 12 flight conditions. Thermal management challenges and materia...", "keywords": ["development", "testing", "scramjet", "engine", "technology", "hypersonic", "flight", "vehicle"], "similar": [13, 21, 0]}, {"id": 3, "title": "Ion Propulsion System for Satellite Station Keeping", "category": "propulsion", "text": "Xenon ion propulsion system design and performance evaluation for geostationary satellite applications. Electrostatic thruster grid erosion analysis, propellant utilization efficiency, and power processing unit performance are characterized. Specific impulse measurements exceeding 3000 seconds demon...", "keywords": ["xenon", "ion", "propulsion", "system", "design", "performance", "evaluation", "geostationary"], "similar": [1, 4, 11]}, {"id": 4, "title": "Solid Rocket Motor Ballistic Performance", "category": "propulsion", "text": "Ballistic performance characterization of solid rocket motors for tactical missile applications. Propellant burn rate measurements, chamber pressure profiles, and thrust vector control integration are analyzed. Grain geometry optimization for desired thrust time profiles and total impulse requiremen...", "keywords": ["ballistic", "performance", "characterization", "solid", "rocket", "motor", "tactical", "missile"], "similar": [1, 3, 0]}, {"id": 5, "title": "Inertial Navigation System Error Analysis", "category": "guidance", "text": "Error propagation analysis for strapdown inertial navigation systems used in precision guided munitions. Accelerometer and gyroscope bias drift effects on position and velocity accuracy are modeled. Kalman filter design for optimal estimation of navigation states with sensor error compensation. Alig...", "keywords": ["error", "propagation", "analysis", "strapdown", "inertial", "navigation", "system", "used"], "similar": [17, 6, 9]}, {"id": 6, "title": "GPS Aided Navigation for Autonomous Vehicles", "category": "guidance", "text": "Integration of GPS receiver data with inertial measurement unit outputs for autonomous vehicle navigation. Extended Kalman filter algorithms for position velocity and attitude estimation with measurement updates. GPS signal acquisition and tracking in contested environments with anti-jamming capabil...", "keywords": ["integration", "gps", "receiver", "data", "inertial", "measurement", "unit", "output"], "similar": [5, 8, 17]}, {"id": 7, "title": "Terminal Guidance Algorithms for Precision Strike", "category": "guidance", "text": "Terminal phase guidance law development for precision strike weapons against stationary and moving targets. Proportional navigation and augmented proportional navigation guidance algorithms with target state estimation. Seeker gimbal control and line of sight rate measurement processing for accurate...", "keywords": ["terminal", "phase", "guidance", "law", "development", "precision", "strike", "weapon"], "similar": [15, 9, 5]}, {"id": 8, "title": "Star Tracker Attitude Determination System", "category": "guidance", "text": "Star tracker sensor design and attitude determination algorithms for spacecraft orientation control. Lost in space algorithms for initial attitude acquisition using star pattern matching. Attitude accuracy requirements for earth observation and deep space communication antenna pointing. Quaternion b...", "keywords": ["star", "tracker", "sensor", "design", "attitude", "determination", "algorithm", "spacecraft"], "similar": [6, 1, 9]}, {"id": 9, "title": "Reentry Vehicle Guidance and Control", "category": "guidance", "text": "Guidance navigation and control system design for ballistic missile reentry vehicles. Atmospheric reentry trajectory optimization with range and accuracy constraints. Aerodynamic control surface effectiveness at hypersonic velocities and high dynamic pressure conditions. Navigation state estimation ...", "keywords": ["guidance", "navigation", "control", "system", "design", "ballistic", "missile", "reentry"], "similar": [5, 11, 21]}, {"id": 10, "title": "Carbon Fiber Composite Structural Analysis", "category": "structures", "text": "Structural analysis of carbon fiber reinforced polymer composites for aerospace applications. Laminate theory application to predict stiffness and strength of multi directional fiber layups. Failure mode analysis including delamination, matrix cracking, and fiber breakage under combined loading. Fin...", "keywords": ["structural", "analysis", "carbon", "fiber", "reinforced", "polymer", "composite", "aerospace"], "similar": [24, 12, 13]}, {"id": 11, "title": "Thermal Protection System for Reentry Vehicles", "category": "structures", "text": "Ablative thermal protection system design and performance analysis for reentry vehicle nose tips and heat shields. Ablation rate measurements and char layer formation under high enthalpy arc jet testing conditions. Material selection criteria for peak heating rates exceeding 1000 watts per square ce...", "keywords": ["ablative", "thermal", "protection", "system", "design", "performance", "analysis", "reentry"], "similar": [9, 13, 21]}, {"id": 12, "title": "Titanium Alloy Fatigue Life Prediction", "category": "structures", "text": "Fatigue life prediction methodology for titanium alloy aerospace structural components. Stress life and strain life approaches with mean stress correction factors for variable amplitude loading spectra. Fracture mechanics based crack growth analysis using Paris law with threshold stress intensity co...", "keywords": ["fatigue", "life", "prediction", "methodology", "titanium", "alloy", "aerospace", "structural"], "similar": [14, 13, 10]}, {"id": 13, "title": "Aerodynamic Heating Analysis of Hypersonic Vehicles", "category": "structures", "text": "Computational and experimental analysis of aerodynamic heating on hypersonic vehicle surfaces. Laminar to turbulent boundary layer transition effects on local heat transfer coefficients. Leading edge heating rates and thermal soak analysis for sustained hypersonic cruise conditions. Thermal stress a...", "keywords": ["computational", "experimental", "analysis", "aerodynamic", "heating", "hypersonic", "vehicle", "surface"], "similar": [24, 2, 11]}, {"id": 14, "title": "Vibration Analysis of Launch Vehicle Structures", "category": "structures", "text": "Dynamic analysis of launch vehicle structural response to acoustic and mechanical vibration environments. Modal analysis and frequency response functions for primary structural components. Random vibration testing requirements and qualification levels for payload and avionics components. Structural ...", "keywords": ["dynamic", "analysis", "launch", "vehicle", "structural", "response", "acoustic", "mechanical"], "similar": [12, 19, 2]}, {"id": 15, "title": "Radar Seeker Design for Missile Guidance", "category": "sensors", "text": "Active radar seeker design and performance analysis for air to air missile terminal guidance. Monopulse angle tracking and range Doppler processing for target state estimation. Electronic counter countermeasures capabilities and clutter rejection algorithms. Seeker gimbal stabilization and handover ...", "keywords": ["active", "radar", "seeker", "design", "performance", "analysis", "air", "air"], "similar": [7, 18, 9]}, {"id": 16, "title": "Infrared Sensor Array for Missile Warning Systems", "category": "sensors", "text": "Infrared focal plane array design for missile approach warning system applications. Two color detection algorithms for discrimination between missile threats and background clutter. Sensitivity and false alarm rate analysis under various atmospheric and background conditions. Cooling system requirem...", "keywords": ["infrared", "focal", "plane", "array", "design", "missile", "approach", "warning"], "similar": [18, 19, 9]}, {"id": 17, "title": "Microelectromechanical Systems Inertial Sensors", "category": "sensors", "text": "MEMS accelerometer and gyroscope design for miniaturized inertial measurement unit applications. Fabrication processes and mechanical design for noise reduction and bias stability improvement. Temperature compensation algorithms and calibration procedures for tactical grade performance. Shock and vi...", "keywords": ["mem", "accelerometer", "gyroscope", "design", "miniaturized", "inertial", "measurement", "unit"], "similar": [5, 6, 18]}, {"id": 18, "title": "Phased Array Antenna Systems for Radar Applications", "category": "sensors", "text": "Active electronically scanned array antenna design for airborne radar systems. Transmit receive module design and beamforming network implementation for electronic beam steering. Array calibration procedures and pattern synthesis for sidelobe reduction. Electronic warfare considerations and low prob...", "keywords": ["active", "electronically", "scanned", "array", "antenna", "design", "airborne", "radar"], "similar": [16, 17, 15]}, {"id": 19, "title": "Telemetry Systems for Flight Test Applications", "category": "sensors", "text": "Flight test telemetry system design for missile and launch vehicle test programs. PCM encoder design and data compression algorithms for efficient bandwidth utilization. Antenna system design for omnidirectional coverage during all flight phases. Range safety applications and real time data monitori...", "keywords": ["flight", "test", "telemetry", "system", "design", "missile", "launch", "vehicle"], "similar": [16, 2, 24]}, {"id": 20, "title": "Computational Fluid Dynamics of Transonic Flow", "category": "aerodynamics", "text": "Computational fluid dynamics simulation of transonic flow over missile body and fin configurations. Reynolds averaged Navier Stokes solver validation against wind tunnel measurements. Shock wave boundary layer interaction effects on aerodynamic coefficients and stability derivatives. Grid sensitivit...", "keywords": ["computational", "fluid", "dynamic", "simulation", "transonic", "flow", "missile", "body"], "similar": [21, 23, 24]}, {"id": 21, "title": "Hypersonic Aerodynamics of Reentry Bodies", "category": "aerodynamics", "text": "Aerodynamic characterization of ballistic reentry vehicle shapes at hypersonic Mach numbers. Newtonian flow theory and modified Newtonian methods for rapid pressure distribution estimation. Wind tunnel testing at Mach 10 through Mach 20 with real gas effects simulation. Aerodynamic database developm...", "keywords": ["aerodynamic", "characterization", "ballistic", "reentry", "vehicle", "shape", "hypersonic", "mach"], "similar": [20, 2, 9]}, {"id": 22, "title": "Store Separation Aerodynamics", "category": "aerodynamics", "text": "Computational and experimental investigation of weapon store separation from aircraft weapon bays and pylons. Captive trajectory simulation methodology and store trajectory prediction accuracy. Interference effects of aircraft flowfield on store aerodynamic coefficients during separation event. Safe...", "keywords": ["computational", "experimental", "investigation", "weapon", "store", "separation", "aircraft", "weapon"], "similar": [13, 20, 21]}, {"id": 23, "title": "Fin Stabilized Projectile Flight Dynamics", "category": "aerodynamics", "text": "Flight dynamic analysis of fin stabilized projectiles including spin stabilized and drag stabilized configurations. Magnus force and moment effects on trajectory and dispersion characteristics. Meplat geometry effects on drag coefficient and ballistic coefficient for long range projectiles. Atmosphe...", "keywords": ["flight", "dynamic", "analysis", "fin", "stabilized", "projectile", "including", "spin"], "similar": [20, 7, 9]}, {"id": 24, "title": "Boundary Layer Transition on Hypersonic Vehicles", "category": "aerodynamics", "text": "Boundary layer transition prediction on hypersonic vehicle forebodies and control surfaces. Linear stability theory application to predict transition onset Reynolds numbers. Surface roughness and nose tip bluntness effects on transition location and heat transfer augmentation. Flight test transition...", "keywords": ["boundary", "layer", "transition", "prediction", "hypersonic", "vehicle", "forebodies", "control"], "similar": [13, 9, 11]}];
+var activeFilter = 'all';
+
+function buildStats() {
+  var cats = {};
+  var colors = {aerodynamics:'#58a6ff',guidance:'#3fb950',propulsion:'#d29922',sensors:'#f85149',structures:'#bc8cff'};
+  allDocs.forEach(function(d) { cats[d.category] = (cats[d.category] || 0) + 1; });
+  var html = '';
+  Object.keys(cats).forEach(function(cat) {
+    html += '<div class="stat-card"><div class="num" style="color:' + colors[cat] + '">' + cats[cat] + '</div><div class="lbl">' + cat + '</div></div>';
+  });
+  document.getElementById('stats-row').innerHTML = html;
+}
+
+function buildFilters() {
+  var cats = ['all'];
+  allDocs.forEach(function(d) { if (cats.indexOf(d.category) === -1) cats.push(d.category); });
+  var html = '';
+  cats.forEach(function(c) {
+    html += '<button class="filter-btn' + (c === 'all' ? ' active' : '') + '" data-cat="' + c + '">' + c + '</button>';
+  });
+  document.getElementById('filters').innerHTML = html;
+  document.getElementById('filters').addEventListener('click', function(e) {
+    if (e.target.classList.contains('filter-btn')) {
+      activeFilter = e.target.getAttribute('data-cat');
+      document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+      e.target.classList.add('active');
+      doSearch();
+    }
+  });
+}
+
+function tokenize(text) {
+  return text.toLowerCase().replace(/[^a-z ]/g, '').split(' ').filter(function(w) { return w.length > 2; });
+}
+
+function scoreDoc(doc, queryTokens) {
+  if (!queryTokens.length) return 1;
+  var docText = (doc.title + ' ' + doc.keywords.join(' ')).toLowerCase();
+  var hits = 0;
+  queryTokens.forEach(function(t) { if (docText.indexOf(t) >= 0) hits++; });
+  return hits / queryTokens.length;
+}
+
+function doSearch() {
+  var query = document.getElementById('search-input').value.trim();
+  var queryTokens = tokenize(query);
+  var results = allDocs.filter(function(d) { return activeFilter === 'all' || d.category === activeFilter; });
+  if (queryTokens.length) {
+    results = results.map(function(d) {
+      var copy = JSON.parse(JSON.stringify(d));
+      copy.score = scoreDoc(d, queryTokens);
+      return copy;
+    }).filter(function(d) { return d.score > 0; }).sort(function(a, b) { return b.score - a.score; });
+  }
+  renderResults(results, query);
+}
+
+function renderResults(results, query) {
+  document.getElementById('results-header').textContent =
+    results.length + ' document' + (results.length !== 1 ? 's' : '') +
+    (query ? ' matching "' + query + '"' : ' in library');
+  if (!results.length) {
+    document.getElementById('results').innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px">No documents found.</div>';
+    return;
+  }
+  var html = '';
+  results.forEach(function(doc) {
+    var similarHTML = '';
+    doc.similar.forEach(function(idx) {
+      var s = allDocs[idx];
+      if (s) similarHTML += '<div class="similar-item" data-query="' + s.category + '">' + s.title + ' <span style="color:#8b949e">(' + s.category + ')</span></div>';
+    });
+    var scoreHTML = doc.score !== undefined ? '<span style="font-size:12px;color:#8b949e"> relevance: ' + Math.round(doc.score * 100) + '%</span>' : '';
+    var kwHTML = doc.keywords.map(function(k) { return '<span class="keyword">' + k + '</span>'; }).join('');
+    html += '<div class="doc-card">' +
+      '<div class="doc-header">' +
+        '<div class="doc-title">' + doc.title + '</div>' +
+        '<div class="doc-meta"><span class="category-badge cat-' + doc.category + '">' + doc.category + '</span>' + scoreHTML + '</div>' +
+      '</div>' +
+      '<div class="doc-text">' + doc.text + '</div>' +
+      '<div class="doc-keywords">' + kwHTML + '</div>' +
+      '<div class="similar-docs"><div class="similar-label">Related documents:</div>' + similarHTML + '</div>' +
+    '</div>';
+  });
+  document.getElementById('results').innerHTML = html;
+  document.getElementById('results').addEventListener('click', function(e) {
+    var item = e.target.closest('.similar-item');
+    if (item) {
+      document.getElementById('search-input').value = item.getAttribute('data-query');
+      doSearch();
+    }
+  });
+}
+
+document.getElementById('search-btn').addEventListener('click', doSearch);
+document.getElementById('search-input').addEventListener('keypress', function(e) { if (e.key === 'Enter') doSearch(); });
+document.querySelectorAll('.quick-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.getElementById('search-input').value = btn.getAttribute('data-query');
+    doSearch();
+  });
+});
+
+buildStats();
+buildFilters();
+renderResults(allDocs, '');
+</script>
+</body>
+</html>
